@@ -7,50 +7,60 @@ public class PlayerController : MonoBehaviour
 {
     [SerializeField] private float m_launchForce = 10f;
 
-    private Rigidbody2D rigidbody;
+    private Rigidbody2D _rigidbody;
 
-    private float timeBoosted;
-    private bool launch;
-    private Vector2 launchDirection;
+    private float _timeBoosted;
+    private bool _launch;
+    private Vector2 _launchDirection;
 
-    void Awake()
+    private void Awake()
     {
-        rigidbody = GetComponent<Rigidbody2D>();
+        _rigidbody = GetComponent<Rigidbody2D>();
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         if (Input.GetMouseButton(0))
         {
-            timeBoosted += Time.deltaTime;
+            _timeBoosted += Time.deltaTime;
         }
         if (Input.GetMouseButtonUp(0))
         {
-            launch = true;
+            _launch = true;
             var screenToWorldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            var direction = (transform.position - screenToWorldPoint).normalized;
-            launchDirection = direction;
+            var direction = transform.position - screenToWorldPoint;
+            direction.z = 0;
+            _launchDirection = direction.normalized;
         }
     }
 
     private void FixedUpdate()
     {
-        if (launch)
+        if (_launch)
         {
             Debug.Log("Launch Ball");
-            var launchForce = launchDirection * timeBoosted * m_launchForce;
-            rigidbody.AddForce(launchForce, ForceMode2D.Impulse);
-            timeBoosted = 0;
-            launch = false;
+            var launchForce = _launchDirection * (_timeBoosted * m_launchForce);
+            _rigidbody.AddForce(launchForce, ForceMode2D.Impulse);
+            _timeBoosted = 0;
+            _launch = false;
         }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag("Goal"))
+        if (collision.gameObject.TryGetComponent<Goal> (out var goal))
         {
-            SceneManager.LoadScene(gameObject.scene.buildIndex);
+            if (string.IsNullOrEmpty (goal.NextLevelName))
+            {
+                var sceneIndexToLoad = gameObject.scene.buildIndex + 1;
+                sceneIndexToLoad %= SceneManager.sceneCountInBuildSettings;
+                SceneManager.LoadScene(sceneIndexToLoad);
+            }
+            else
+            {
+                SceneManager.LoadScene (goal.NextLevelName);
+            }
         }
     }
 
