@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,68 +8,99 @@ public class PlayerController : MonoBehaviour
 {
     [SerializeField] private float m_launchForce = 10f;
 
-    private Rigidbody2D _rigidbody;
 
-    private float _timeBoosted;
-    private bool _launch;
-    private Vector2 _launchDirection;
+    [SerializeField] private int m_startingHealth = 3;
 
-    private void Awake()
+    private Rigidbody2D rigidbody;
+
+    private float timeBoosted;
+    private bool launch;
+    private Vector2 launchDirection;
+
+    private int currentHealth;
+
+    public int CurrentHealth => currentHealth;
+
+    void Awake()
     {
-        _rigidbody = GetComponent<Rigidbody2D>();
+        rigidbody = GetComponent<Rigidbody2D>();
+        currentHealth = m_startingHealth;
     }
 
     // Update is called once per frame
-    private void Update()
+    void Update()
     {
         if (Input.GetMouseButton(0))
         {
-            _timeBoosted += Time.deltaTime;
+            timeBoosted += Time.deltaTime;
         }
         if (Input.GetMouseButtonUp(0))
         {
-            _launch = true;
+            launch = true;
             var screenToWorldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            var direction = transform.position - screenToWorldPoint;
-            direction.z = 0;
-            _launchDirection = direction.normalized;
+            var direction = (transform.position - screenToWorldPoint);
+            direction.z = 0f;
+            launchDirection = direction.normalized;
+        }
+    }
+
+    public void GetHurt(int amount = 1)
+    {
+        if (amount <= 0) return;
+
+        Debug.Log("Player got hurt");
+        currentHealth -= amount;
+
+        if (currentHealth <= 0)
+        {
+            StartCoroutine(ReloadLevel());
         }
     }
 
     private void FixedUpdate()
     {
-        if (_launch)
+        if (launch)
         {
             Debug.Log("Launch Ball");
-            var launchForce = _launchDirection * (_timeBoosted * m_launchForce);
-            _rigidbody.AddForce(launchForce, ForceMode2D.Impulse);
-            _timeBoosted = 0;
-            _launch = false;
+            var launchForce = launchDirection * timeBoosted * m_launchForce;
+            rigidbody.AddForce(launchForce, ForceMode2D.Impulse);
+            timeBoosted = 0;
+            launch = false;
         }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.TryGetComponent<Goal> (out var goal))
+        if (collision.gameObject.CompareTag("Goal"))
         {
-            if (string.IsNullOrEmpty (goal.NextLevelName))
+            if (collision.gameObject.TryGetComponent<Goal> (out var goal) && !string.IsNullOrEmpty (goal.NextLevelName))
             {
-                var sceneIndexToLoad = gameObject.scene.buildIndex + 1;
-                sceneIndexToLoad %= SceneManager.sceneCountInBuildSettings;
-                SceneManager.LoadScene(sceneIndexToLoad);
+                SceneManager.LoadScene (goal.NextLevelName);
             }
             else
             {
-                SceneManager.LoadScene (goal.NextLevelName);
+                var sceneIndexToLoad = gameObject.scene.buildIndex;
+                sceneIndexToLoad %= SceneManager.sceneCountInBuildSettings;
+                SceneManager.LoadScene(sceneIndexToLoad);
             }
         }
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    [ContextMenu("Just Die")]
+    private void WouldYouKindlyJustDie()
     {
-        if (collision.collider.attachedRigidbody && collision.collider.attachedRigidbody.CompareTag("Enemy"))
-        {
-            SceneManager.LoadScene(gameObject.scene.buildIndex);
-        }
+        GetHurt(currentHealth);
+    }
+
+    private IEnumerator ReloadLevel()
+    {
+        var handle = SceneManager.LoadSceneAsync(gameObject.scene.buildIndex);
+        handle.allowSceneActivation = false;
+        Time.timeScale = 0.1f;
+
+        yield return new WaitForSecondsRealtime(2f);
+
+        Time.timeScale = 1f;
+        handle.allowSceneActivation = true;
     }
 }

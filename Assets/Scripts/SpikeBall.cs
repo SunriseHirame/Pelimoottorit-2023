@@ -20,4 +20,12 @@ public class SpikeBall : MonoBehaviour
         var position = Vector2.Lerp(startPosition, startPosition + m_offsetEndPosition, t);
         rigidbody.MovePosition(position);
     }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (!collision.attachedRigidbody) return;
+        if (!collision.attachedRigidbody.TryGetComponent<PlayerController>(out var player)) return;
+
+        player.GetHurt();
+    }
 }
