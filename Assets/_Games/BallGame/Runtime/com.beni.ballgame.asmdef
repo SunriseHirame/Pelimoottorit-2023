@@ -1,0 +1,16 @@
+{
+    "name": "com.beni.ballgame",
+    "rootNamespace": "",
+    "references": [
+        "GUID:75992930a48a14448a796bc11c7e4400"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
