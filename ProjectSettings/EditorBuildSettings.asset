@@ -6,15 +6,18 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_Games/Multiplayer/Scenes/Multiplayer.unity
+    guid: 2e2663fa24dd218419f5b5f305b0a8bc
+  - enabled: 0
     path: Assets/_Games/BallGame/Scenes/MainMenu.unity
     guid: 65770c7fe43376e409bd506251a92687
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Games/BallGame/Scenes/Level_001.unity
     guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Games/BallGame/Scenes/Level_002.unity
     guid: ab9f960e27318674299f0bcf2c18f8a6
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Games/BallGame/Scenes/Level_003.unity
     guid: 3c0fbfec5738a744685b451747351dd6
   m_configObjects: {}
