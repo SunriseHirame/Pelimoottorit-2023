@@ -17,7 +17,7 @@ public class Cube : Updateable, IUpdateable
     private void Awake()
     {
         transform.position = Random.onUnitSphere * Random.value * 20f;
-        //GetComponent<Renderer>().material.color = Random.ColorHSV();
+        GetComponent<Renderer>().material.color = Random.ColorHSV();
         //var pb = new MaterialPropertyBlock();
         //pb.SetColor("_BaseColor", Random.ColorHSV());
         //GetComponent<Renderer>().SetPropertyBlock(pb);
