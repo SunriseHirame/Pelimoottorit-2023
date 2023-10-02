@@ -2,101 +2,75 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface IAiBehaviour
+public enum WanderAroundMode
 {
-    float Evaluate(AiAgent agent);
-    bool Execute(AiAgent agent);
+    WorldSpaceArea,
+    PointNearAgent,
 }
 
-public class AiWanderAround : IAiBehaviour
+[CreateAssetMenu(menuName = "Ai Project/Ai Wander Around")]
+public class AiWanderAround : ScriptableAiBehaviour
 {
-    private float _timeToWait;
+    [SerializeField] private WanderAroundMode m_wanderMode = WanderAroundMode.WorldSpaceArea;
+    [SerializeField] private Vector3 m_wanderAreaSize = new Vector3(48, 0, 48);
 
-    public float Evaluate(AiAgent agent)
+    [SerializeField] private float m_minTimeToWaitAtTarget = 3f;
+    [SerializeField] private float m_maxTimeToWaitAtTarget = 5f;
+
+    public override float Evaluate(AiAgent agent)
     {
         return agent.CurrentEnergy;
     }
 
-    public bool Execute(AiAgent agent)
+    public override void OnEnter(AiAgent agent)
     {
-        if (_timeToWait > 0)
-        {
-            _timeToWait -= Time.deltaTime;
-            return false;
-        }
+        var targetPosition = new Vector3(
+            Random.Range(-m_wanderAreaSize.x, m_wanderAreaSize.x), 
+            0f, 
+            Random.Range(-m_wanderAreaSize.z, m_wanderAreaSize.z));
 
+        agent.NavAgent.destination = m_wanderMode switch
+        {
+            WanderAroundMode.WorldSpaceArea => targetPosition,
+            WanderAroundMode.PointNearAgent => agent.transform.position + targetPosition,
+            _ => targetPosition,
+        };
+
+        /* This does the same as the switch expression above
+        switch (m_wanderMode)
+        {
+            case WanderAroundMode.WorldSpaceArea:
+                agent.NavAgent.destination = targetPosition;
+                break;
+            case WanderAroundMode.PointNearAgent:
+                agent.NavAgent.destination = agent.transform.position + targetPosition;
+                break;
+            default:
+                break;
+        }
+        */
+
+        agent.Blackboard.WriteValue("TimeToWait", Random.Range(m_minTimeToWaitAtTarget, m_maxTimeToWaitAtTarget));
+        //_timeToWait = Random.Range(3f, 5f);
+    }
+
+    public override bool Execute(AiAgent agent)
+    {
         if (!agent.GetIsAtDestination())
         {
             return false;
         }
 
-        var targetPosition = new Vector3(Random.Range(-48, 48), 0f, Random.Range(-48, 48));
-        agent.NavAgent.destination = targetPosition;
-
-        _timeToWait = Random.Range(3f, 5f);
-        return false;
-    }
-}
-
-public class AiMoveToTarget : IAiBehaviour
-{
-    public float Evaluate(AiAgent agent)
-    {
-        return float.MaxValue;
-    }
-
-    public bool Execute (AiAgent agent)
-    {
-        if (!agent.GetIsAtDestination())
+        if ((float) agent.Blackboard["TimeToWait"] > 0)
         {
-            return false;
-        }
+            if (agent.Blackboard.TryGetFloat("TimeToWait", out var timeLeftToWait))
+            {
+                timeLeftToWait -= Time.deltaTime;
+                agent.Blackboard.WriteValue("TimeToWait", timeLeftToWait);
+                return false;
+            }
+        } 
 
         return true;
-    }
-}
-
-public class AiSeekEnergy : IAiBehaviour
-{
-    private GameObject _targetedOrb;
-
-    public float Evaluate(AiAgent agent)
-    {
-        if (agent.CurrentEnergy > 60) return 0;
-        return (60 - agent.CurrentEnergy) * 10f;
-    }
-
-    public bool Execute(AiAgent agent)
-    {
-        if (!_targetedOrb || !_targetedOrb.activeInHierarchy)
-        {
-            var allEnergyOrbs = GameObject.FindGameObjectsWithTag("EnergyOrb");
-
-            if (allEnergyOrbs.Length == 0)
-            {
-                Debug.Log("NO ORBS!");
-                return true;
-            }
-
-            var closestDistanceToOrb = float.MaxValue;
-            var closestOrb = default(GameObject);
-
-            for (int i = 0; i < allEnergyOrbs.Length; i++)
-            {
-                var distance = Vector3.Distance(agent.transform.position, allEnergyOrbs[i].transform.position);
-                if (distance < closestDistanceToOrb)
-                {
-                    closestOrb = allEnergyOrbs[i];
-                    closestDistanceToOrb = distance;
-                }
-            }
-
-            Debug.Log("Found target orb");
-            _targetedOrb = closestOrb;
-            agent.NavAgent.destination = _targetedOrb.transform.position;
-        }
-
-
-        return agent.GetIsAtDestination();
     }
 }

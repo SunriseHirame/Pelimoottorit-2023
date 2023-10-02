@@ -29,7 +29,7 @@ public class SelectionManager : MonoBehaviour
             {
                 if (LastSelected.TryGetComponent<AiAgent>(out var agent))
                 {
-                    agent.SetDestination(hitInfo.point);
+                    agent.CommandToMoveTo(hitInfo.point);
                 }
             }
         }
