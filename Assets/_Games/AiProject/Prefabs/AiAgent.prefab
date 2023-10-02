@@ -78,9 +78,9 @@ MonoBehaviour:
   m_animator: {fileID: 6592513254285619418}
   m_outOfEnergyExplosion: {fileID: 6847966683775151221}
   m_stats:
-    Energy: 70
-    Food: 70
-    Water: 70
+    <Energy>k__BackingField: 50
+    <Food>k__BackingField: 50
+    <Water>k__BackingField: 0
   m_footStepSoud: {fileID: 5055571715190600983}
   m_aiBehaviours:
   - {fileID: 11400000, guid: 3ebc44d7c0489e4408b63876aebab99c, type: 2}

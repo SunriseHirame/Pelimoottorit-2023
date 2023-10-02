@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,13 +7,15 @@ using UnityEngine.AI;
 [System.Serializable]
 public class AiAgentStats
 {
-    public float Energy;
-    public float Food;
-    public float Water;
+    [field: SerializeField] public float Energy { get; set; }
+    [field: SerializeField] public float Food { get; set; }
+    [field: SerializeField] public float Water { get; set; }
 }
 
 public class AiAgent : MonoBehaviour
 {
+    public static List<AiAgent> All = new List<AiAgent>();
+
     [SerializeField] private NavMeshAgent m_navMeshAgent;
     [SerializeField] private Animator m_animator;
     [SerializeField] private ParticleSystem m_outOfEnergyExplosion;
@@ -43,18 +46,21 @@ public class AiAgent : MonoBehaviour
         SwitchBehaviour(m_aiBehaviours[0]);
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        m_stats.Energy -= Time.deltaTime;
-        m_stats.Food -= Time.deltaTime;
-        m_stats.Water -= Time.deltaTime;
+        All.Add(this);
+    }
 
-        if (m_stats.Energy <= 0)
-        {
-            m_outOfEnergyExplosion.transform.parent = null;
-            m_outOfEnergyExplosion.Play();
-            gameObject.SetActive(false);
-        }
+    private void OnDisable()
+    {
+        All.Remove(this);
+    }
+
+    public void OnUpdate()
+    {
+        UpdateStats();
+
+        CheckForDeath();
 
         var currentBestBehaviour = FindBestAiBehviour();
 
@@ -71,6 +77,23 @@ public class AiAgent : MonoBehaviour
         }
 
         m_animator.SetFloat("Speed", m_navMeshAgent.velocity.magnitude);
+    }
+
+    private void CheckForDeath()
+    {
+        if (m_stats.Energy <= 0)
+        {
+            m_outOfEnergyExplosion.transform.parent = null;
+            m_outOfEnergyExplosion.Play();
+            gameObject.SetActive(false);
+        }
+    }
+
+    private void UpdateStats()
+    {
+        m_stats.Energy -= Time.deltaTime;
+        m_stats.Food -= Time.deltaTime;
+        m_stats.Water -= Time.deltaTime;
     }
 
     private IAiBehaviour FindBestAiBehviour()
@@ -124,10 +147,18 @@ public class AiAgent : MonoBehaviour
         return Vector3.Distance(m_navMeshAgent.destination, transform.position) < m_navMeshAgent.stoppingDistance + 0.1f;
     }
 
+    private Dictionary<string, Func<float>> _getStatMethodCache = new Dictionary<string, Func<float>>();
+
     public bool TryGetStat(string statName, out float value)
     {
-        var field = typeof(AiAgentStats).GetField(statName);
-        if (field == null)
+        if (_getStatMethodCache.TryGetValue(statName, out var del))
+        {
+            value = del();
+            return true;
+        }
+
+        var property = typeof(AiAgentStats).GetProperty(statName);
+        if (property == null)
         {
             Debug.Log($"AiAgentStats does not contain a field with name: {statName}");
 
@@ -135,22 +166,27 @@ public class AiAgent : MonoBehaviour
             return false;
         }
 
-        value = (float)field.GetValue(m_stats);
+        var method = property.GetGetMethod();
+        del = (Func<float>) Delegate.CreateDelegate(typeof(Func<float>), m_stats, method);
+
+        _getStatMethodCache.Add(statName, del);
+
+        value = del();
         return true;
     }
 
     public bool TryAddStat(string statName, float valueToAdd)
     {
-        var field = typeof(AiAgentStats).GetField(statName);
-        if (field == null)
+        var property = typeof(AiAgentStats).GetProperty(statName);
+        if (property == null)
         {
             Debug.Log($"AiAgentStats does not contain a field with name: {statName}");
             return false;
         }
 
-        var current = (float)field.GetValue(m_stats);
+        var current = (float)property.GetValue(m_stats);
         current += valueToAdd;
-        field.SetValue(m_stats, current);
+        property.SetValue(m_stats, current);
         return true;
     }
 
@@ -170,8 +206,8 @@ public class AiAgent : MonoBehaviour
 
     private void OnFootStep()
     {
-        m_footStepSoud.volume = Random.Range(0.6f, 0.75f);
-        m_footStepSoud.pitch = Random.Range(0.9f, 1.1f);
+        m_footStepSoud.volume = UnityEngine.Random.Range(0.6f, 0.75f);
+        m_footStepSoud.pitch = UnityEngine.Random.Range(0.9f, 1.1f);
         m_footStepSoud.Play();
     }
 }
